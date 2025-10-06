@@ -13,10 +13,12 @@ function App() {
           <div className="uc-bar"></div>
           <div className="uc-bar"></div>
           <div className="uc-bar"></div>
-          <h1>Proprietăți propr.ro</h1>
+          <h1>Chirie Cluj pana la 500 euro</h1>
         <Search />
+         
         </div>
         <p className="uc-text">We are building something awesome. Stay tuned!</p>
+         
       </div>
     </div>
     
