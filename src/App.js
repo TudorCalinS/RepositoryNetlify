@@ -14,9 +14,8 @@ function App() {
           <div className="uc-bar"></div>
           <div className="uc-bar"></div>
           
-         
         </div>
-        <p className="uc-text">We are building something awesome. Stay tuned!</p>
+        <p className="uc-text">We are in testing phase. Stay tuned!</p>
 
         <h1>Chirie Cluj pana la 500 euro</h1>
         <Search />
