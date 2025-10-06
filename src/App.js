@@ -7,13 +7,14 @@ function App() {
   return (
     <div className="App">
       <div className="uc-container">
-        <h1>Proprietăți propr.ro</h1>
-        <Search />
+        
         <h1 className="uc-title">🚧 Under Construction 🚧</h1>
         <div className="uc-animation">
           <div className="uc-bar"></div>
           <div className="uc-bar"></div>
           <div className="uc-bar"></div>
+          <h1>Proprietăți propr.ro</h1>
+        <Search />
         </div>
         <p className="uc-text">We are building something awesome. Stay tuned!</p>
       </div>
