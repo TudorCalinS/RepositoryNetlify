@@ -1,6 +1,6 @@
 // src/pages/Home.js
 import React from "react";
-import Search from "../components/Search";
+import { Link } from "react-router-dom";
 
 export default function Home() {
   return (
@@ -13,8 +13,9 @@ export default function Home() {
       </div>
       <p className="uc-text">We are in testing phase. Stay tuned!</p>
 
-      <h1>Chirie Cluj pana la 500 euro</h1>
-      <Search />
+      <Link to="/search">
+        <button className="btn-go-search">Caută anunțuri</button>
+      </Link>
     </div>
   );
 }
