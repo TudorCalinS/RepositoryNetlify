@@ -1,8 +1,8 @@
 import algoliasearch from "algoliasearch";
 
 const client = algoliasearch(
-  process.env.TCTLP8TOBS,
-  process.env.c5fff00660eded6e46dbe60d5beffd36
+  process.env.ALGOLIA_APP_ID,
+  process.env.ALGOLIA_ADMIN_KEY
 );
 const index = client.initIndex("anunturi");
 
@@ -13,7 +13,7 @@ export default async function handler(event, context) {
 
   // Validare token
   const token = event.headers["x-ingest-token"];
-  if (!token || token !== process.env.Netzwerk2025) {
+  if (!token || token !== process.env.NETZWERK_TOKEN) {
     return { statusCode: 403, body: "Forbidden" };
   }
 
