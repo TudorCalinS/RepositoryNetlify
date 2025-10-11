@@ -1,5 +1,6 @@
 // netlify/functions/indexPost.js
-
+// Definim cheia secretă (aceeași pe care o pui în popup)
+const SECRET = process.env.SECRET || "111"; // poți schimba "111" cu ce vrei
 // Funcția principală pentru Netlify
 exports.handler = async (event, context) => {
   try {
