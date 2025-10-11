@@ -1,42 +1,54 @@
 // netlify/functions/indexPost.js
+
 // Definim cheia secretă (aceeași pe care o pui în popup)
-const SECRET = process.env.SECRET || "111"; // poți schimba "111" cu ce vrei
-// Funcția principală pentru Netlify
+const SECRET = process.env.SECRET || "111"; // poți schimba "test123" cu ce vrei
+
 exports.handler = async (event, context) => {
   try {
-    // Verificăm metoda HTTP
+    // CORS pentru toate răspunsurile
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    };
+
+    // ✅ Preflight OPTIONS
     if (event.httpMethod === "OPTIONS") {
-      // CORS preflight
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "Content-Type",
-          "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-        },
-        body: "OK",
-      };
+      return { statusCode: 200, headers: corsHeaders, body: "OK" };
     }
 
+    // ✅ GET simplu de test
     if (event.httpMethod === "GET") {
-      // Test rapid
       return {
         statusCode: 200,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: corsHeaders,
         body: JSON.stringify({ message: "Funcția indexPost merge corect ✅" }),
       };
     }
 
+    // ✅ POST — aici verificăm secretul
     if (event.httpMethod === "POST") {
+      const authHeader = event.headers.authorization || "";
+      const key = authHeader.replace("Bearer ", "").trim();
+
+      if (key !== SECRET) {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({ error: "Unauthorized: invalid secret key" }),
+        };
+      }
+
+      // Dacă secretul e valid, procesăm payloadul
       const body = JSON.parse(event.body || "{}");
       console.log("📦 Body primit:", body);
 
-      // Poți adăuga aici logica ta — de ex. trimitere date la un API extern
-      // const response = await fetch("https://api.exemplu.com/endpoint", { ... });
+      // Aici poți adăuga logica ta custom (ex: trimitere spre Algolia)
+      // await fetch("https://algolia.net/api", { ... })
 
       return {
         statusCode: 200,
-        headers: { "Access-Control-Allow-Origin": "*" },
+        headers: corsHeaders,
         body: JSON.stringify({
           success: true,
           message: "POST primit cu succes 🚀",
@@ -45,10 +57,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Dacă e alt tip de request:
+    // ❌ Dacă nu e GET/POST/OPTIONS
     return {
       statusCode: 405,
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({ error: "Method not allowed" }),
     };
 
