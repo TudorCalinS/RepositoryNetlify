@@ -28,11 +28,8 @@ exports.handler = async (event, context) => {
 
     // ✅ POST — aici verificăm secretul
     if (event.httpMethod === "POST") {
-      const key =
-  (event.headers.authorization?.replace("Bearer ", "").trim()) ||
-  (event.headers["x-my-secret"]?.trim()) ||
-  "";
-
+      const authHeader = event.headers.authorization || "";
+      const key = authHeader.replace("Bearer ", "").trim();
 
       if (key !== SECRET) {
         return {
