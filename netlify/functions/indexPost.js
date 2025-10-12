@@ -8,7 +8,7 @@ exports.handler = async (event, context) => {
     // CORS pentru toate răspunsurile
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization,x-my-secret",
       "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     };
 
