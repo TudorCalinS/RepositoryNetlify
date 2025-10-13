@@ -3,8 +3,8 @@
 import algoliasearch from "algoliasearch";
 
 // 🔐 Setează-ți aici datele tale Algolia
-const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID || "APP_IDUL_TAU";
-const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_KEY || "ADMIN_API_KEY";
+const ALGOLIA_APP_ID = process.env.ALGOLIA_APP_ID || "TCTLP8TOBS";
+const ALGOLIA_ADMIN_KEY = process.env.ALGOLIA_ADMIN_KEY || "c5fff00660eded6e46dbe60d5beffd36";
 const ALGOLIA_INDEX_NAME = process.env.ALGOLIA_INDEX_NAME || "fb_Chirie_500_posts";
 
 const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY);
