@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin — propr.ro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f8fa; margin: 0; padding: 20px; }
+    .login { max-width: 400px; margin: 80px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .login input { width: 100%; padding: 8px; margin: 10px 0; }
+    .post { background: white; padding: 15px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .images img { max-width: 150px; border-radius: 6px; margin-right: 5px; }
+    #posts { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="login" class="login">
+      <h3>🔐 Acces administrativ propr.ro</h3>
+      <input id="pass" type="password" placeholder="Introdu parola..." />
+      <button onclick="login()">Accesează</button>
+      <p id="msg" style="color:red;"></p>
+    </div>
+
+    <div id="content" style="display:none;">
+      <h2>📊 Postări colectate (fb_Chirie_500_posts)</h2>
+      <div id="posts">Se încarcă datele...</div>
+    </div>
+  </div>
+
+  <script>
+    const MY_PASS = "111"; // 🔑 schimbă parola ta aici
+    const ALGOLIA_APP_ID = "TBD_APP_ID"; // <- pune APP ID-ul tău Algolia
+    const ALGOLIA_SEARCH_KEY = "TBD_SEARCH_KEY"; // <- pune SEARCH KEY (nu ADMIN key!)
+    const ALGOLIA_INDEX = "fb_Chirie_500_posts";
+
+    function login() {
+      const p = document.getElementById('pass').value.trim();
+      if (p !== MY_PASS) {
+        document.getElementById('msg').textContent = "Parolă greșită ❌";
+        return;
+      }
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      loadPosts();
+    }
+
+    function loadPosts() {
+      const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
+      const index = client.initIndex(ALGOLIA_INDEX);
+      index.search('', { hitsPerPage: 100 }).then(({ hits }) => {
+        const container = document.getElementById('posts');
+        container.innerHTML = '';
+        hits.forEach(post => {
+          const div = document.createElement('div');
+          div.className = 'post';
+          div.innerHTML = `
+            <strong>${post.author || "Anonim"}</strong><br>
+            <small>${new Date(post.timestamp).toLocaleString()}</small><br>
+            <p>${post.text || ""}</p>
+            ${post.images ? '<div class="images">' + post.images.map(img => '<img src="' + img + '">').join('') + '</div>' : ''}
+            <a href="${post.url}" target="_blank">🔗 Vezi postarea</a>
+          `;
+          container.appendChild(div);
+        });
+      }).catch(err => {
+        document.getElementById('posts').textContent = "⚠️ Eroare la încărcare din Algolia: " + err.message;
+      });
+    }
+  </script>
+</body>
+</html>
