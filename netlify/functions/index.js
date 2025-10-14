@@ -11,41 +11,44 @@ const index = client.initIndex(ALGOLIA_INDEX_NAME);
 export async function handler(event) {
   // 🔹 1. Setează CORS headers
   const headers = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-my-secret",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
-};
-
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-my-secret",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+  };
 
   // 🔹 2. OPTIONS — răspuns la preflight (browser check)
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers, body: "OK" };
   }
 
-  // 🔹 3. GET — verificare rapidă (ping test)
+  // 🔹 3. GET — preluare din Algolia pentru admin.html
   if (event.httpMethod === "GET") {
-    console.log("📡 Ping GET primit!");
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: "Funcția Algolia merge corect ✅" })
-    };
+    try {
+      console.log("📡 Cerere GET primită (admin.html)");
+
+      const { hits } = await index.search("", { hitsPerPage: 50 });
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(hits)
+      };
+    } catch (err) {
+      console.error("❌ Eroare la citire Algolia:", err);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: err.message })
+      };
+    }
   }
 
   // 🔹 4. POST — primire date din extensie
   if (event.httpMethod === "POST") {
     try {
       console.log("📨 Cerere POST primită...");
+      const body = JSON.parse(event.body || "{}");
 
-      // Încearcă să parsezi body-ul JSON
-      let body = {};
-      try {
-        body = JSON.parse(event.body || "{}");
-      } catch (e) {
-        console.warn("⚠️ Body invalid sau gol:", event.body);
-      }
-
-      // Log vizibil în consola Netlify
       console.log("🧾 Postare primită:", {
         id: body.id,
         text: body.text?.substring(0, 60) || "",
@@ -61,7 +64,6 @@ export async function handler(event) {
         };
       }
 
-      // 🔄 Salvare în Algolia
       await index.saveObject({
         objectID: body.id,
         title: body.text || "",
