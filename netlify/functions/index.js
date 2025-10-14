@@ -11,10 +11,11 @@ const index = client.initIndex(ALGOLIA_INDEX_NAME);
 export async function handler(event) {
   // 🔹 1. Setează CORS headers
   const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, x-my-secret",
-    "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
-  };
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-my-secret",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+};
+
 
   // 🔹 2. OPTIONS — răspuns la preflight (browser check)
   if (event.httpMethod === "OPTIONS") {
