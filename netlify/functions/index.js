@@ -13,7 +13,9 @@ export async function handler(event) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, x-my-secret",
-    "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Credentials": "true",
+
   };
 
   // 🔹 2. OPTIONS — răspuns la preflight (browser check)
@@ -66,7 +68,7 @@ export async function handler(event) {
 
       await index.saveObject({
         objectID: body.id,
-        title: body.text || "",
+text: body.text || "",
         url: body.url || "",
         author: body.author || "",
         timestamp: new Date().toISOString()
