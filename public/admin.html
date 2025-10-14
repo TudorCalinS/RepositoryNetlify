@@ -1,73 +1,161 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin — propr.ro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/algoliasearch@4/dist/algoliasearch-lite.umd.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrare Postări Facebook</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f7f8fa; margin: 0; padding: 20px; }
-    .login { max-width: 400px; margin: 80px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .login input { width: 100%; padding: 8px; margin: 10px 0; }
-    .post { background: white; padding: 15px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .images img { max-width: 150px; border-radius: 6px; margin-right: 5px; }
-    #posts { margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f6f8fa;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    #search {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    #info {
+      margin-bottom: 15px;
+      color: #666;
+      font-size: 14px;
+    }
+    .post {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #0366d6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    button:hover {
+      background: #0253b3;
+    }
   </style>
 </head>
 <body>
-  <div id="app">
-    <div id="login" class="login">
-      <h3>🔐 Acces administrativ propr.ro</h3>
-      <input id="pass" type="password" placeholder="Introdu parola..." />
-      <button onclick="login()">Accesează</button>
-      <p id="msg" style="color:red;"></p>
-    </div>
-
-    <div id="content" style="display:none;">
-      <h2>📊 Postări colectate (fb_Chirie_500_posts)</h2>
-      <div id="posts">Se încarcă datele...</div>
-    </div>
-  </div>
+  <h1>📋 Postări salvate din Facebook</h1>
+  <input id="search" type="text" placeholder="🔍 Caută în text, autor sau link...">
+  <div id="info">Se încarcă postările...</div>
+  <button id="deleteDupes" style="display:none;">🗑️ Șterge dublurile din Algolia</button>
+  <div id="posts"></div>
 
   <script>
-    const MY_PASS = "111"; // 🔑 schimbă parola ta aici
-    const ALGOLIA_APP_ID = "TCTLP8TOBS"; // <- pune APP ID-ul tău Algolia
-    const ALGOLIA_SEARCH_KEY = "9bd990d39a63306983a0b1ddc6b754cc"; // <- pune SEARCH KEY (nu ADMIN key!)
-    const ALGOLIA_INDEX = "fb_Chirie_500_posts";
+    let allPosts = [];
+    let duplicates = [];
 
-    function login() {
-      const p = document.getElementById('pass').value.trim();
-      if (p !== MY_PASS) {
-        document.getElementById('msg').textContent = "Parolă greșită ❌";
+    async function loadPosts() {
+      const info = document.getElementById("info");
+      const container = document.getElementById("posts");
+
+      try {
+        const response = await fetch("https://propr.ro/.netlify/functions/index");
+        if (!response.ok) throw new Error("Eroare HTTP " + response.status);
+
+        const rawPosts = await response.json();
+        const { uniquePosts, dupes } = detectDuplicates(rawPosts);
+
+        allPosts = uniquePosts;
+        duplicates = dupes;
+
+        document.getElementById("deleteDupes").style.display = dupes.length ? "inline-block" : "none";
+        info.textContent = `Afișate ${uniquePosts.length} postări (din ${rawPosts.length}, ${dupes.length} duplicate detectate).`;
+        renderPosts(uniquePosts);
+      } catch (err) {
+        info.innerHTML = `<span style="color:red;">Eroare: ${err.message}</span>`;
+        console.error("Eroare la fetch:", err);
+      }
+    }
+
+    // 🔹 Detectează și separă duplicatele
+    function detectDuplicates(posts) {
+      const seen = new Map();
+      const uniquePosts = [];
+      const dupes = [];
+
+      for (const p of posts) {
+        const key =
+          (p.url && p.url.trim()) ||
+          (p.text && p.text.substring(0, 100).trim().toLowerCase());
+        if (!key) continue;
+
+        if (!seen.has(key)) {
+          seen.set(key, p.objectID || p.id);
+          uniquePosts.push(p);
+        } else {
+          dupes.push(p);
+        }
+      }
+      return { uniquePosts, dupes };
+    }
+
+    async function deleteDuplicates() {
+      if (!duplicates.length) return alert("Nu există duplicate de șters.");
+      if (!confirm(`Ești sigur că vrei să ștergi ${duplicates.length} postări duplicate din Algolia?`)) return;
+
+      try {
+        const ids = duplicates.map(d => d.objectID || d.id).filter(Boolean);
+        const resp = await fetch("https://propr.ro/.netlify/functions/index", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids })
+        });
+
+        const data = await resp.json();
+        alert(`✅ ${data.message}`);
+        loadPosts();
+      } catch (err) {
+        alert("❌ Eroare la ștergere: " + err.message);
+      }
+    }
+
+    function renderPosts(posts) {
+      const container = document.getElementById("posts");
+      if (!posts.length) {
+        container.innerHTML = "<p>Nicio postare salvată.</p>";
         return;
       }
-      document.getElementById('login').style.display = 'none';
-      document.getElementById('content').style.display = 'block';
-      loadPosts();
+
+      container.innerHTML = posts.map(p => `
+        <div class="post">
+          <p>${p.text || "(fără text)"}</p>
+          <small>
+            <b>Autor:</b> ${p.author || "necunoscut"}<br>
+            <b>Link:</b> ${p.url ? `<a href="${p.url}" target="_blank">${p.url}</a>` : "—"}<br>
+            <b>Data:</b> ${p.timestamp ? new Date(p.timestamp).toLocaleString() : "—"}
+          </small>
+        </div>
+      `).join("");
     }
 
-    function loadPosts() {
-      const client = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
-      const index = client.initIndex(ALGOLIA_INDEX);
-      index.search('', { hitsPerPage: 100 }).then(({ hits }) => {
-        const container = document.getElementById('posts');
-        container.innerHTML = '';
-        hits.forEach(post => {
-          const div = document.createElement('div');
-          div.className = 'post';
-          div.innerHTML = `
-            <strong>${post.author || "Anonim"}</strong><br>
-            <small>${new Date(post.timestamp).toLocaleString()}</small><br>
-            <p>${post.text || ""}</p>
-            ${post.images ? '<div class="images">' + post.images.map(img => '<img src="' + img + '">').join('') + '</div>' : ''}
-            <a href="${post.url}" target="_blank">🔗 Vezi postarea</a>
-          `;
-          container.appendChild(div);
-        });
-      }).catch(err => {
-        document.getElementById('posts').textContent = "⚠️ Eroare la încărcare din Algolia: " + err.message;
-      });
-    }
+    document.getElementById("search").addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtered = allPosts.filter(p =>
+        (p.text && p.text.toLowerCase().includes(q)) ||
+        (p.author && p.author.toLowerCase().includes(q)) ||
+        (p.url && p.url.toLowerCase().includes(q))
+      );
+      renderPosts(filtered);
+    });
+
+    document.getElementById("deleteDupes").addEventListener("click", deleteDuplicates);
+
+    loadPosts();
   </script>
 </body>
 </html>

@@ -89,6 +89,37 @@ text: body.text || "",
       };
     }
   }
+  // 🔹 5. DELETE — ștergere postări duplicate din Algolia
+  if (event.httpMethod === "DELETE") {
+    try {
+      console.log("🗑️ Cerere DELETE primită...");
+      const body = JSON.parse(event.body || "{}");
+      const ids = body.ids || [];
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "Lipsesc ID-urile pentru ștergere" })
+        };
+      }
+
+      await index.deleteObjects(ids);
+      console.log(`✅ ${ids.length} obiecte șterse din Algolia`);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ message: `Șterse ${ids.length} obiecte din Algolia` })
+      };
+    } catch (err) {
+      console.error("❌ Eroare la ștergere:", err);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: err.message })
+      };
+    }
+  }
 
   // ❌ Orice altă metodă
   return {
