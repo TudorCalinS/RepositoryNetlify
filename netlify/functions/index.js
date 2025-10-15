@@ -33,7 +33,7 @@ export async function handler(event) {
       const telefon = params.get("telefon") || "";
       const pret = params.get("pret") || "";
       const text = params.get("text") || "";
-      const limit = parseInt(params.get("limit") || "50", 10);
+      const limit = parseInt(params.get("limit") || "200", 10);
 
       // Construim query-ul final
       let query = q || text || "";
