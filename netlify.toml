@@ -1,9 +1,11 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
   publish = "build"
+  functions = "netlify/functions"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, x-my-secret"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
