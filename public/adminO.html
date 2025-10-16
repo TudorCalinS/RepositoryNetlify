@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrare Anunțuri Facebook</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f9fb;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #003366;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    input, select {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      flex: 1;
+      min-width: 150px;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #deleteDupes {
+      background: #d9534f;
+    }
+    #deleteDupes:hover {
+      background: #b52b27;
+    }
+    #results {
+      margin-top: 20px;
+    }
+    .post {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .post a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .post small {
+      color: #555;
+      display: block;
+      margin-top: 4px;
+    }
+    .loading {
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Administrare anunțuri</h1>
+
+  <div class="filters">
+    <input type="text" id="text" placeholder="Caută text (ex: apartament, chirie)">
+    <input type="text" id="zona" placeholder="Zonă (ex: Zorilor)">
+    <input type="text" id="pret" placeholder="Preț (ex: 300)">
+    <input type="text" id="telefon" placeholder="Telefon (ex: 07)">
+    <select id="limit">
+      <option value="50">Ultimele 50</option>
+      <option value="100">Ultimele 100</option>
+      <option value="200">Ultimele 200</option>
+      <option value="custom">Custom</option>
+    </select>
+    <input type="number" id="customLimit" placeholder="Număr anunțuri" style="display:none; width: 120px;">
+    <button id="search">Caută</button>
+    <button id="deleteDupes">Șterge dublurile</button>
+  </div>
+
+  <div id="status" class="loading">Aștept căutarea...</div>
+  <div id="results"></div>
+
+  <script>
+    const API_URL = "https://propr.ro/.netlify/functions/index";
+
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const limitSelect = document.getElementById("limit");
+    const customLimitInput = document.getElementById("customLimit");
+
+    limitSelect.addEventListener("change", () => {
+      customLimitInput.style.display = limitSelect.value === "custom" ? "inline-block" : "none";
+    });
+
+    // 🔹 Căutare anunțuri
+    document.getElementById("search").addEventListener("click", async () => {
+      const text = document.getElementById("text").value.trim();
+      const zona = document.getElementById("zona").value.trim();
+      const pret = document.getElementById("pret").value.trim();
+      const telefon = document.getElementById("telefon").value.trim();
+      let limit = limitSelect.value === "custom" ? customLimitInput.value || "50" : limitSelect.value;
+
+      const params = new URLSearchParams({ text, zona, pret, telefon, limit });
+      const url = `${API_URL}?${params.toString()}`;
+
+      statusEl.textContent = "⏳ Caut anunțuri...";
+      resultsEl.innerHTML = "";
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          statusEl.textContent = "⚠️ Niciun anunț găsit.";
+          return;
+        }
+
+        statusEl.textContent = `✅ ${data.length} anunțuri găsite`;
+
+        resultsEl.innerHTML = data.map(post => `
+          <div class="post">
+            <a href="${post.url}" target="_blank">${post.text?.substring(0, 120) || "(fără text)"}...</a>
+            <small>👤 ${post.author || "necunoscut"} — 🕒 ${new Date(post.timestamp).toLocaleString()}</small>
+          </div>
+        `).join("");
+
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Eroare la preluare anunțuri.";
+      }
+    });
+
+    // 🔹 Ștergere dubluri
+    document.getElementById("deleteDupes").addEventListener("click", async () => {
+      if (!confirm("Sigur vrei să ștergi dublurile din Algolia?")) return;
+
+      statusEl.textContent = "⏳ Se caută și se șterg dublurile...";
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+
+        if (!Array.isArray(data)) {
+          statusEl.textContent = "⚠️ Nu s-au putut obține anunțurile pentru verificare.";
+          return;
+        }
+
+        // grupare după text scurt (primele 80 caractere)
+        const map = new Map();
+        const dupes = [];
+        data.forEach(p => {
+          const key = (p.text || "").substring(0, 80).toLowerCase().trim();
+          if (map.has(key)) dupes.push(p.objectID || p.id);
+          else map.set(key, true);
+        });
+
+        if (dupes.length === 0) {
+          statusEl.textContent = "✅ Nu există dubluri.";
+          return;
+        }
+
+        const delRes = await fetch(API_URL, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: dupes })
+        });
+
+        const delData = await delRes.json();
+        statusEl.textContent = `🗑️ ${dupes.length} dubluri șterse din Algolia.`;
+        console.log("Detalii ștergere:", delData);
+
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Eroare la ștergerea dublurilor.";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,189 +1,172 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administrare Anunțuri Facebook</title>
+  <meta charset="UTF-8" />
+  <title>FB Export & Scan - Admin</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f7f9fb;
-      margin: 0;
+      background: #f9fafb;
       padding: 20px;
     }
     h1 {
-      color: #003366;
+      color: #1a237e;
+      font-size: 22px;
     }
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 10px;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    input, select {
+    input, button, select {
       padding: 8px;
       border: 1px solid #ccc;
-      border-radius: 8px;
-      flex: 1;
-      min-width: 150px;
+      border-radius: 6px;
+      font-size: 14px;
     }
     button {
-      padding: 10px 16px;
-      border: none;
-      background: #007bff;
+      background: #1a73e8;
       color: white;
-      border-radius: 8px;
+      border: none;
       cursor: pointer;
+      transition: 0.2s;
     }
     button:hover {
-      background: #0056b3;
+      background: #155ab6;
     }
-    #deleteDupes {
-      background: #d9534f;
-    }
-    #deleteDupes:hover {
-      background: #b52b27;
-    }
-    #results {
-      margin-top: 20px;
-    }
-    .post {
+    table {
+      width: 100%;
+      border-collapse: collapse;
       background: white;
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
     }
-    .post a {
-      color: #007bff;
-      text-decoration: none;
-      font-weight: bold;
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
     }
-    .post small {
-      color: #555;
-      display: block;
-      margin-top: 4px;
+    th {
+      background: #e3f2fd;
+      text-align: left;
     }
-    .loading {
-      color: #888;
+    td img {
+      max-width: 80px;
+      border-radius: 6px;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <h1>🔍 Administrare anunțuri</h1>
 
-  <div class="filters">
-    <input type="text" id="text" placeholder="Caută text (ex: apartament, chirie)">
-    <input type="text" id="zona" placeholder="Zonă (ex: Zorilor)">
-    <input type="text" id="pret" placeholder="Preț (ex: 300)">
-    <input type="text" id="telefon" placeholder="Telefon (ex: 07)">
+  <h1>📊 Admin - Anunțuri Facebook</h1>
+
+  <form id="filterForm">
+    <input type="text" id="text" placeholder="Caută text..." />
+    <input type="text" id="zona" placeholder="Zonă (ex: Floresti)" />
+    <input type="text" id="pret" placeholder="Preț (ex: 400, euro)" />
+    <input type="text" id="telefon" placeholder="Telefon" />
     <select id="limit">
       <option value="50">Ultimele 50</option>
       <option value="100">Ultimele 100</option>
       <option value="200">Ultimele 200</option>
-      <option value="custom">Custom</option>
     </select>
-    <input type="number" id="customLimit" placeholder="Număr anunțuri" style="display:none; width: 120px;">
-    <button id="search">Caută</button>
-    <button id="deleteDupes">Șterge dublurile</button>
-  </div>
+    <button type="submit">🔍 Caută</button>
+    <button type="button" id="resetBtn" style="background:#e53935">🧨 Reset DB</button>
+  </form>
 
-  <div id="status" class="loading">Aștept căutarea...</div>
-  <div id="results"></div>
+  <div id="status">Se încarcă...</div>
+  <table id="results" style="display:none;">
+    <thead>
+      <tr>
+        <th>Text</th>
+        <th>Autor</th>
+        <th>Link</th>
+        <th>Imagini</th>
+        <th>Data</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    const API_URL = "https://propr.ro/.netlify/functions/index";
+    const ENDPOINT = "https://propr.ro/.netlify/functions/index";
+    const SECRET = "111";
 
-    const statusEl = document.getElementById("status");
-    const resultsEl = document.getElementById("results");
-    const limitSelect = document.getElementById("limit");
-    const customLimitInput = document.getElementById("customLimit");
+    const form = document.getElementById("filterForm");
+    const table = document.getElementById("results");
+    const tbody = table.querySelector("tbody");
+    const status = document.getElementById("status");
+    const resetBtn = document.getElementById("resetBtn");
 
-    limitSelect.addEventListener("change", () => {
-      customLimitInput.style.display = limitSelect.value === "custom" ? "inline-block" : "none";
-    });
+    async function fetchData(params = {}) {
+      const qs = new URLSearchParams(params).toString();
+      status.textContent = "⏳ Se încarcă...";
+      table.style.display = "none";
 
-    // 🔹 Căutare anunțuri
-    document.getElementById("search").addEventListener("click", async () => {
-      const text = document.getElementById("text").value.trim();
-      const zona = document.getElementById("zona").value.trim();
-      const pret = document.getElementById("pret").value.trim();
-      const telefon = document.getElementById("telefon").value.trim();
-      let limit = limitSelect.value === "custom" ? customLimitInput.value || "50" : limitSelect.value;
+      const res = await fetch(`${ENDPOINT}?${qs}`, {
+        headers: { "x-my-secret": SECRET },
+      });
 
-      const params = new URLSearchParams({ text, zona, pret, telefon, limit });
-      const url = `${API_URL}?${params.toString()}`;
-
-      statusEl.textContent = "⏳ Caut anunțuri...";
-      resultsEl.innerHTML = "";
-
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!Array.isArray(data) || data.length === 0) {
-          statusEl.textContent = "⚠️ Niciun anunț găsit.";
-          return;
-        }
-
-        statusEl.textContent = `✅ ${data.length} anunțuri găsite`;
-
-        resultsEl.innerHTML = data.map(post => `
-          <div class="post">
-            <a href="${post.url}" target="_blank">${post.text?.substring(0, 120) || "(fără text)"}...</a>
-            <small>👤 ${post.author || "necunoscut"} — 🕒 ${new Date(post.timestamp).toLocaleString()}</small>
-          </div>
-        `).join("");
-
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "❌ Eroare la preluare anunțuri.";
+      const data = await res.json();
+      tbody.innerHTML = "";
+      if (!Array.isArray(data) || data.length === 0) {
+        status.textContent = "⚠️ Nicio înregistrare găsită.";
+        return;
       }
+
+      data.forEach((p) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${p.text?.substring(0, 150) || ""}</td>
+          <td>${p.author || ""}</td>
+          <td>${p.url ? `<a href="${p.url}" target="_blank">🔗</a>` : ""}</td>
+          <td>${p.images ? `<img src="${p.images.split(',')[0]}" alt="">` : ""}</td>
+          <td>${new Date(p.timestamp).toLocaleString("ro-RO")}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      status.textContent = `✅ ${data.length} anunțuri afișate.`;
+      table.style.display = "table";
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const params = {
+        text: document.getElementById("text").value.trim(),
+        zona: document.getElementById("zona").value.trim(),
+        pret: document.getElementById("pret").value.trim(),
+        telefon: document.getElementById("telefon").value.trim(),
+        limit: document.getElementById("limit").value,
+      };
+      fetchData(params);
     });
 
-    // 🔹 Ștergere dubluri
-    document.getElementById("deleteDupes").addEventListener("click", async () => {
-      if (!confirm("Sigur vrei să ștergi dublurile din Algolia?")) return;
-
-      statusEl.textContent = "⏳ Se caută și se șterg dublurile...";
-      try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-
-        if (!Array.isArray(data)) {
-          statusEl.textContent = "⚠️ Nu s-au putut obține anunțurile pentru verificare.";
-          return;
-        }
-
-        // grupare după text scurt (primele 80 caractere)
-        const map = new Map();
-        const dupes = [];
-        data.forEach(p => {
-          const key = (p.text || "").substring(0, 80).toLowerCase().trim();
-          if (map.has(key)) dupes.push(p.objectID || p.id);
-          else map.set(key, true);
-        });
-
-        if (dupes.length === 0) {
-          statusEl.textContent = "✅ Nu există dubluri.";
-          return;
-        }
-
-        const delRes = await fetch(API_URL, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids: dupes })
-        });
-
-        const delData = await delRes.json();
-        statusEl.textContent = `🗑️ ${dupes.length} dubluri șterse din Algolia.`;
-        console.log("Detalii ștergere:", delData);
-
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "❌ Eroare la ștergerea dublurilor.";
-      }
+    resetBtn.addEventListener("click", async () => {
+      if (!confirm("Sigur vrei să ștergi toată baza de date?")) return;
+      status.textContent = "🧨 Se șterge baza de date...";
+      const res = await fetch(`${ENDPOINT}?action=reset`, {
+        method: "POST",
+        headers: { "x-my-secret": SECRET },
+      });
+      const txt = await res.text();
+      status.textContent = `✅ ${txt}`;
+      tbody.innerHTML = "";
+      table.style.display = "none";
     });
+
+    // Încarcă implicit ultimele 50
+    fetchData({ limit: 50 });
   </script>
 </body>
 </html>
