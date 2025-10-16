@@ -6,46 +6,40 @@ const table = base("Anunturi");
 
 export async function handler(event) {
   const headers = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": "*", // permite orice domeniu
     "Access-Control-Allow-Headers": "Content-Type,x-my-secret",
     "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
   };
 
-  // Preflight pentru CORS
+  // ✅ Răspuns imediat la cererile de tip OPTIONS (preflight)
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers, body: "OK" };
   }
 
-  // ✅ Validare secret
-  const secret = event.headers["x-my-secret"];
-  if (secret !== process.env.MY_SECRET) {
-    return { statusCode: 403, headers, body: "Secret invalid" };
-  }
+  try {
+    // ✅ Validare secret
+    const secret = event.headers["x-my-secret"];
+    if (secret !== process.env.MY_SECRET) {
+      return { statusCode: 403, headers, body: "Secret invalid" };
+    }
 
-  // 🔹 RESETARE BAZĂ DE DATE
-  if (event.httpMethod === "POST" && event.queryStringParameters?.action === "reset") {
-    try {
+    // 🔹 RESETARE BAZĂ DE DATE
+    if (event.httpMethod === "POST" && event.queryStringParameters?.action === "reset") {
       const records = await table.select().all();
       if (records.length === 0)
         return { statusCode: 200, headers, body: JSON.stringify({ message: "Baza de date este deja goală." }) };
 
       await Promise.all(records.map(r => table.destroy(r.id)));
       return { statusCode: 200, headers, body: JSON.stringify({ message: "✅ Baza de date a fost ștearsă complet." }) };
-    } catch (e) {
-      console.error("Eroare reset:", e);
-      return { statusCode: 500, headers, body: "Eroare la resetare DB." };
     }
-  }
 
-  // 🔹 SALVARE ANUNȚURI (POST din extensie)
-  if (event.httpMethod === "POST") {
-    try {
+    // 🔹 SALVARE ANUNȚURI (POST din extensie)
+    if (event.httpMethod === "POST") {
       const data = JSON.parse(event.body);
 
       if (!data.id || !data.text)
         return { statusCode: 400, headers, body: "Lipsește id sau text" };
 
-      // verificare dubluri
       const existing = await table.select({ filterByFormula: `{id} = "${data.id}"` }).firstPage();
       if (existing.length > 0) {
         return { statusCode: 200, headers, body: JSON.stringify({ duplicated: true }) };
@@ -65,15 +59,10 @@ export async function handler(event) {
       ]);
 
       return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
-    } catch (err) {
-      console.error("Eroare la POST:", err);
-      return { statusCode: 500, headers, body: "Eroare la adăugare anunț" };
     }
-  }
 
-  // 🔹 CITIRE ANUNȚURI (GET pentru admin)
-  if (event.httpMethod === "GET") {
-    try {
+    // 🔹 CITIRE ANUNȚURI (GET pentru admin)
+    if (event.httpMethod === "GET") {
       const { text, zona, pret, telefon, limit } = event.queryStringParameters || {};
       let filter = [];
 
@@ -102,11 +91,11 @@ export async function handler(event) {
       }));
 
       return { statusCode: 200, headers, body: JSON.stringify(result) };
-    } catch (err) {
-      console.error("Eroare la GET:", err);
-      return { statusCode: 500, headers, body: "Eroare la citire anunțuri" };
     }
-  }
 
-  return { statusCode: 405, headers, body: "Metodă neacceptată" };
+    return { statusCode: 405, headers, body: "Metodă neacceptată" };
+  } catch (err) {
+    console.error("Eroare generală:", err);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+  }
 }
