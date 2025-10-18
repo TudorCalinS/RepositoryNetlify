@@ -22,6 +22,8 @@ export async function handler(event) {
     if (secret !== process.env.MY_SECRET) {
       return { statusCode: 403, headers, body: "Secret invalid" };
     }
+console.log("Secret din request:", event.headers["x-my-secret"]);
+console.log("Secret așteptat:", process.env.MY_SECRET);
 
     // 🔹 RESETARE BAZĂ DE DATE
     if (event.httpMethod === "POST" && event.queryStringParameters?.action === "reset") {
