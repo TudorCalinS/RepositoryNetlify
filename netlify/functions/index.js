@@ -4,25 +4,13 @@ import Airtable from "airtable";
 const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE_ID);
 const table = base(process.env.AIRTABLE_TABLE_ID);
 
-console.log("ENV CHECK:", {
-  AIRTABLE_API_KEY: process.env.AIRTABLE_API_KEY ? "✅" : "❌",
-  MY_SECRET: process.env.MY_SECRET ? "✅" : "❌"
-});
+console.log("=== DEBUG ENV ===");
+console.log("MY_SECRET =", process.env.MY_SECRET ? "✅ SET" : "❌ MISSING");
+console.log("All ENV KEYS:", Object.keys(process.env).filter(k => k.includes("MY_") || k.includes("AIRTABLE")));
 
 
-exports.handler = async () => {
-  console.log("=== DEBUG: ENV VARIABLES ===");
-  console.log("AIRTABLE_API_KEY =", process.env.AIRTABLE_API_KEY ? "✅ SET" : "❌ MISSING");
-  console.log("AIRTABLE_BASE_ID =", process.env.AIRTABLE_BASE_ID ? "✅ SET" : "❌ MISSING");
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      apiKey: !!process.env.AIRTABLE_API_KEY,
-      baseId: !!process.env.AIRTABLE_BASE_ID,
-    }),
-  };
-};
+
 
 
 
