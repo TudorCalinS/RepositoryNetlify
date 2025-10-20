@@ -79,7 +79,7 @@ console.log("Secret așteptat:", process.env.MY_SECRET);
       const records = await table
         .select({
           filterByFormula: formula || undefined,
-          maxRecords: limit ? parseInt(limit) : 50,
+          maxRecords: limit ? parseInt(limit) : 5,
           sort: [{ field: "timestamp", direction: "desc" }],
         })
         .all();
