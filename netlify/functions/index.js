@@ -4,6 +4,12 @@ import Airtable from "airtable";
 const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE_ID);
 const table = base(process.env.AIRTABLE_TABLE_ID);
 
+console.log("ENV CHECK:", {
+  AIRTABLE_API_KEY: process.env.AIRTABLE_API_KEY ? "✅" : "❌",
+  MY_SECRET: process.env.MY_SECRET ? "✅" : "❌"
+});
+
+
 exports.handler = async () => {
   console.log("=== DEBUG: ENV VARIABLES ===");
   console.log("AIRTABLE_API_KEY =", process.env.AIRTABLE_API_KEY ? "✅ SET" : "❌ MISSING");
