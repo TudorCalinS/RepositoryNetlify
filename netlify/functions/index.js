@@ -4,9 +4,6 @@ import Airtable from "airtable";
 const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(process.env.AIRTABLE_BASE_ID);
 const table = base(process.env.AIRTABLE_TABLE_ID);
 
-console.log("=== DEBUG ENV ===");
-console.log("MY_SECRET =", process.env.MY_SECRET ? "✅ SET" : "❌ MISSING");
-console.log("All ENV KEYS:", Object.keys(process.env).filter(k => k.includes("MY_") || k.includes("AIRTABLE")));
 
 
 
@@ -35,6 +32,10 @@ export async function handler(event) {
     }
 console.log("Secret din request:", event.headers["x-my-secret"]);
 console.log("Secret așteptat:", process.env.MY_SECRET);
+console.log("=== DEBUG ===");
+console.log("MY_SECRET:", process.env.MY_SECRET ? "✅ SET" : "❌ MISSING");
+console.log("Secret primit:", event.headers["x-my-secret"]);
+
 
     // 🔹 RESETARE BAZĂ DE DATE
     if (event.httpMethod === "POST" && event.queryStringParameters?.action === "reset") {
