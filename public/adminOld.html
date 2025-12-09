@@ -120,7 +120,8 @@
     // 🔹 Toate
     document.getElementById("btnAll").addEventListener("click", () => renderPosts(allPosts));
 
-    // 🔹 Filtrare după o dată anume
+    // 🔹 Filtrare după o dată anume//test
+    
     document.getElementById("dateFilter").addEventListener("change", e => {
       const chosenDate = e.target.value;
       if (!chosenDate) return renderPosts(allPosts);
