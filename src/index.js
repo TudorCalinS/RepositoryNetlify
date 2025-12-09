@@ -1,6 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css"; // dacă ai stiluri globale
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<h1>propr.ro</h1>);
-console.log("Site propr.ro este activ.");
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
