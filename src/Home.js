@@ -21,7 +21,7 @@ export default function Home() {
         <p className="uc-text">
           Contact:{" "}
           <a href="mailto:calintudorsuciu@gmail.com" className="uc-mail">
-            calin@propr.ro
+            calintudorsuciu@gmail.com
           </a>
         </p>
       </div>

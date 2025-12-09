@@ -1,6 +1,6 @@
 // src/App.js
 import React from "react";
-import Home from "./pages/Home";
+import Home from "./Home";
 import "./App.css";
 
 function App() {
